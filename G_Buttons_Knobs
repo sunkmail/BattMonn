@@ -1,0 +1,43 @@
+
+// ------------------------------------------------------------------
+// CheckModeButton     CheckModeButton     CheckModeButton     CheckModeButton
+// ------------------------------------------------------------------
+void checkModeButton() {
+  // static unsigned long LastModeChange = 0;                               // Debounce check not needed due to really long delay between allowable changes.
+  static unsigned long lastModeChange = (currentMillis - MaxModeChangFreq - 1);  // Set lastModeChange to assure Toggle on first call to routine.
+  
+  if (digitalRead(ModeSwitch_PIN) == ButtonActive) {                     // If Mode Switch being pressed
+   if ((currentMillis - lastModeChange) > MaxModeChangFreq) {            // & if outside of last time mode was switched limit
+      ChangeMode_FLAG = true;                                    // Set Change Mode Flag
+      lastModeChange = currentMillis;                           // Reset Timer reference Start for next possible change (MaxModeChangFreq)
+    }                                                             
+  }
+  // Else, do nothing - Button isn't pressed, or been pressed too recently.
+  
+}
+
+
+// ------------------------------------------------------------------
+// checkEncoderButton     checkEncoderButton     checkEncoderButton     checkEncoderButton
+// ------------------------------------------------------------------
+void checkEncoderButton()  {
+  static unsigned long lastEncoderButtonPress = 0;       // Static =  Variable to retain value (like global) but only used in this routine.
+
+  if (currentMillis - lastEncoderButtonPress > SwBounce) {     // If checked faster than SwBounce ms, assume it's a bounce and ignore
+    encoderButton_FLAG = true;                                //  If not a bounce, flag as such 
+
+  }
+}
+
+
+// ------------------------------------------------------------------
+// checkRunProgSw     checkRunProgSw     checkRunProgSw     checkRunProgSw
+// ------------------------------------------------------------------
+
+void checkRunProgSw(void){
+  
+  if (digitalRead(RunProgSw_PIN) == ButtonActive)  // If the Run/Progam Switch is in Program ... 
+    SettingsMode_FLAG = true;
+  else SettingsMode_FLAG = false;
+}
+
