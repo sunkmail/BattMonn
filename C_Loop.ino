@@ -48,7 +48,7 @@ void loop() {
     int VChargeRAW = digitalRead(VCharge_PIN);
     VChargeInmV = VRawTOmV(VChargeRAW);  
     VCharge = mVToVolts(VChargeInmV);         // Convert mV readings to float V   -- Try to remove later - Processor heavy  
-    ChargePercent = calcBatteryPercent(VChargeInmV);          // Converts Voltage to integer showing Battery % 
+    ChargePercent = calcBatteryPercent(VChargeInmV);          // Converts Voltage to integer (byte) showing Battery % 
     
     if(isDischarge){
       int VDischargeRAW = digitalRead(VDischarge_PIN);
@@ -59,7 +59,7 @@ void loop() {
   
     if(isCurrent){
       int IchargeRaw = digitalRead(Icharge_PIN);                    // Read ADC value for charging current
-     // int IchargemA = IchargeRaw* SOMETHING TBD                   // Convert to mA value
+      IchargemA = map(IchargeRaw, 512, 1023, 0, (maxAmps*1000));     // Convert to mA value - Module 0mA at mid range, 512.
     }
   
     if(isTempSensor){            // If the temp sensor present
@@ -73,9 +73,9 @@ void loop() {
   
     if(monitorMode == false){                   // *****************************************  Add some sort of hysterysis to prevent cycling after initial charge attempt
       if(ChargePercent < virtualPosition)
-        digitalWrite(chargeOn_PIN, HIGH);
+        digitalWrite(ChargeOn_PIN, HIGH);
       else
-        digitalWrite(chargeOn_PIN, LOW);
+        digitalWrite(ChargeOn_PIN, LOW);
   }
   
   }
