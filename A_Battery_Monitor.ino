@@ -73,10 +73,17 @@ const bool isDebug = true;              // Debug messages?
 //bool isDebug = false;
 
 
+const bool isDisplay128x32 = true;
+const bool isDisplay16x2 = false;
 
-const bool isTempSensorPresent = false;    // Is the Temp sensor installed
+
+const bool isTempSensor = false;          // Is the Temp sensor installed
 
 const bool isOLED = false;                // Is the OLED display attached
+
+bool isDischarge = false;                 // Is the discharge port Voltage monitoring present - User changable
+
+const bool isCurrent = false;             // Is a current sensor present?
 
 
 
@@ -92,8 +99,8 @@ const byte EncodeB_PIN = 4;      // DT (data) signal from Rotary Encoder (Pin B)
 const byte EncoderBounce = 5;       // Encoder Debounce time (max) in milliseconds
 const byte SwBounce = 50;           // Encoder Debounce time (max) in milliseconds
 
-volatile int virtualPosition = 80;   // Updated by the ISR (Interrupt Service Routine)
-
+volatile byte virtualPosition = 80;   // Updated by the ISR (Interrupt Service Routine)
+byte virtualPositionSave = 80;        // Place to save position for moving through various settings
 
 
 
@@ -113,7 +120,7 @@ bool updateDisplay_FLAG = true;              // Set initially true to do first d
 
 
 // Temperature Sensor (DS18B20)   
-const byte TempSense_PIN = A2;
+const byte TempSense_PIN = A3;
 /* Constructor */
   // OneWire oneWire(TempSense_PIN);           // Setup a oneWire instance to communicate with any OneWire devices  
                                           // (not just Maxim/Dallas temperature ICs)
@@ -150,17 +157,34 @@ unsigned long currentMillis;      // Working/scratchpad variable for checking ti
 
 const byte VDischarge_PIN = A0;   // To Read voltage from Discharge Port of Battery Pack
 const byte VCharge_PIN = A1;      // To Read voltage from Charger to Battery Pack
-
+const byte Icharge_PIN = A2;      // To read current from module
 
 
 bool ChangeMode_FLAG = false;
 byte packVoltage[] = {36,48,52,60,72};  // Pack Voltage Size options
 byte voltageMode = 1;                   // Set default pack voltage to 48V
 
-const byte OnOffSw_PIN = 8;       // Charge to Battery ON/OFF Switch  (Settings lock)
+const byte MaxVRange = 85;              // max Voltage device designed for / expecting
+
+const byte RunProgSw_PIN = 8;       // Run Vs Program mode Switch  (Settings lock)
                                   // Cannot change mode/Pack Voltage when On
 
 
+
+// **************************************************************
+// ****************** Global Variables **************************
+
+bool SettingsMode_FLAG = false;
+bool encoderButton_FLAG = false;
+bool monitorMode = true;            // Default to monitoring mode (Not actively charging at power-up)
+
+unsigned long VChargeInmV = 0;
+float VCharge = 0;
+byte ChargePercent = 0;
+
+unsigned long VDischargeInmV = 0;
+float VDischarge = 0;
+byte DischargePercent = 0;
 
 // ----------------------------------------------------------------------------
 // DEBUG      DEBUG      DEBUG      DEBUG      DEBUG      DEBUG      DEBUG
@@ -222,5 +246,3 @@ void checkTemp(){
   }
   */
 }
-
-
