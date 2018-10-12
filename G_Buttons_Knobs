@@ -1,4 +1,6 @@
 
+
+
 // ------------------------------------------------------------------
 // CheckModeButton     CheckModeButton     CheckModeButton     CheckModeButton
 // ------------------------------------------------------------------
@@ -6,9 +8,12 @@ void checkModeButton() {
   // static unsigned long LastModeChange = 0;                               // Debounce check not needed due to really long delay between allowable changes.
   static unsigned long lastModeChange = (currentMillis - MaxModeChangFreq - 1);  // Set lastModeChange to assure Toggle on first call to routine.
   
+//  debugPrint("checkModeButton Routine Running",1);
+  
   if (digitalRead(ModeSwitch_PIN) == ButtonActive) {                     // If Mode Switch being pressed
    if ((currentMillis - lastModeChange) > MaxModeChangFreq) {            // & if outside of last time mode was switched limit
       ChangeMode_FLAG = true;                                    // Set Change Mode Flag
+//      debugPrint("Flag Toggle",1);
       lastModeChange = currentMillis;                           // Reset Timer reference Start for next possible change (MaxModeChangFreq)
     }                                                             
   }
@@ -22,10 +27,20 @@ void checkModeButton() {
 // ------------------------------------------------------------------
 void checkEncoderButton()  {
   static unsigned long lastEncoderButtonPress = 0;       // Static =  Variable to retain value (like global) but only used in this routine.
+  static bool _stillPressed = false;
 
-  if (currentMillis - lastEncoderButtonPress > SwBounce) {     // If checked faster than SwBounce ms, assume it's a bounce and ignore
-    encoderButton_FLAG = true;                                //  If not a bounce, flag as such 
-
+  if (digitalRead(EncodeSW_PIN) == ButtonActive){        // If encoder button pushed ...
+    if (_stillPressed == false){
+      if (currentMillis - lastEncoderButtonPress > SwBounce) {     // If checked faster than SwBounce ms, assume it's a bounce and ignore
+        encoderButton_FLAG = true;                                //  If not a bounce, flag as a vlid push
+        _stillPressed = true;                                    // Flag button 'still' being pressed for next loop
+        lastEncoderButtonPress = currentMillis;                   // & Update last valid push time
+        debugPrint("Encoder Button Pressed",1);
+      }
+    }
+  }
+  else{
+    _stillPressed = false;              // If button not being pressed, reset flag
   }
 }
 
@@ -40,4 +55,3 @@ void checkRunProgSw(void){
     SettingsMode_FLAG = true;
   else SettingsMode_FLAG = false;
 }
-
