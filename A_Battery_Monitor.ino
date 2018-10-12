@@ -8,8 +8,18 @@
     LCD or OLED display for showing current mode/status & setting change info.
 
 
+To DO:
 
-
+    Settings menu:
+      - Battery Vs Charger Voltage to control Mosfet
+      - Hysterysis for charge
+    
+    Run Vs Standby indicator
+      - Perhaps don't show current measurement in standby? , replace with standby message?
+    
+    Larger Target % text
+    
+    Current % charged indicator
 
 
 
@@ -79,11 +89,12 @@ const bool isDisplay16x2 = false;
 
 const bool isTempSensor = false;          // Is the Temp sensor installed
 
-const bool isOLED = false;                // Is the OLED display attached
+//const bool isOLED = false;                // Is the OLED display attached
 
-bool isDischarge = false;                 // Is the discharge port Voltage monitoring present - User changable
+bool isDischarge = true;                 // Is the discharge port Voltage monitoring present - User changable
 
-const bool isCurrent = false;             // Is a current sensor present?
+const bool isCurrent = true;             // Is a current sensor present?
+const byte maxAmps = 20;                   // Max Amps module can mesure  (5, 20, 30?)
 
 
 
@@ -92,9 +103,10 @@ const bool ButtonActive = LOW;    // Pushbuttons are using pull-ups.  Signal is 
 // **************************************************************
 // ************** Rotary Encoder Assignments ********************
 
-const byte EncodeSW_PIN = 5;     // Push button switch on Rotary Encoder
+
 const byte EncodeA_PIN = 3;      // HW Int1 - CLK signal from Rotary Encoder (Pin A) - Used for generating interrupts      
 const byte EncodeB_PIN = 4;      // DT (data) signal from Rotary Encoder (Pin B) - Used for reading direction
+const byte EncodeSW_PIN = 5;     // Push button switch on Rotary Encoder
 
 const byte EncoderBounce = 5;       // Encoder Debounce time (max) in milliseconds
 const byte SwBounce = 50;           // Encoder Debounce time (max) in milliseconds
@@ -132,11 +144,11 @@ const byte TempSense_PIN = A3;
   // byte tempSensorAddr[8];                   // Variable to store device's uniquie ID
   // const byte TempSensorResolution = 9;      // Integer value for sensor precision.  Can be 9, 10, 11 or 12 bits
 /*
-          Mode	    Resol	  Conversion time
-          9 bits	  0.5°C	    93.75 ms
-          10 bits	  0.25°C  	187.5 ms
-          11 bits	  0.125°C	  375 ms
-          12 bits	  0.0625°C	750 ms
+          Mode      Resol   Conversion time
+          9 bits    0.5Â°C     93.75 ms
+          10 bits   0.25Â°C    187.5 ms
+          11 bits   0.125Â°C   375 ms
+          12 bits   0.0625Â°C  750 ms
 */
 const unsigned int TempSensorConvTime = 100;  // Time in ms to wait between request for temp conv. and read of temperature - Based on info above.
 float currentTempC = 0.0;                 // Current Temperature in C
@@ -164,7 +176,8 @@ bool ChangeMode_FLAG = false;
 byte packVoltage[] = {36,48,52,60,72};  // Pack Voltage Size options
 byte voltageMode = 1;                   // Set default pack voltage to 48V
 
-const byte MaxVRange = 85;              // max Voltage device designed for / expecting
+//const unsigned long MaxVRange = 85;              // max Voltage device designed for / expecting
+const unsigned long MaxmVRange = 85000;         // max Voltage device designed for / expecting in mV
 
 const byte RunProgSw_PIN = 8;       // Run Vs Program mode Switch  (Settings lock)
                                   // Cannot change mode/Pack Voltage when On
@@ -179,12 +192,16 @@ bool encoderButton_FLAG = false;
 bool monitorMode = true;            // Default to monitoring mode (Not actively charging at power-up)
 
 unsigned long VChargeInmV = 0;
-float VCharge = 0;
+//float VCharge = 0;
 byte ChargePercent = 0;
 
 unsigned long VDischargeInmV = 0;
-float VDischarge = 0;
+//float VDischarge = 0;
 byte DischargePercent = 0;
+
+int IchargemA = 0;                  // Charging Current in mA
+
+
 
 // ----------------------------------------------------------------------------
 // DEBUG      DEBUG      DEBUG      DEBUG      DEBUG      DEBUG      DEBUG
@@ -194,15 +211,15 @@ byte DischargePercent = 0;
 //bool isDebug = false;
 
 template<typename T> void debugPrint(T printMe, bool newLine = false) {
-	if (isDebug) {
-		if (newLine) {
-			Serial.println(printMe);
-		}
-		else {
-			Serial.print(printMe);
-		}
-		Serial.flush();
-	}
+  if (isDebug) {
+    if (newLine) {
+      Serial.println(printMe);
+    }
+    else {
+      Serial.print(printMe);
+    }
+    Serial.flush();
+  }
 }
 
 
