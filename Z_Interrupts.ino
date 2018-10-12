@@ -29,6 +29,6 @@ void isr_EncoderKnob()  {
 //    updateDisplay_FLAG = true;      // Set Flag to indicate a Setting has changed - since in ISR, Something MUST have changed
 // Display updates every loop in RUN mode
   }
-  
+//  debugPrint("ISR",1);
   lastInterruptTime = interruptTime;      // Keep track of when we were here last
 }
