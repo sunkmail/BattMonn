@@ -26,8 +26,8 @@ void setup() {
   
   pinMode(TempSense_PIN, INPUT);  
   
-  digitalWrite(chargeOn_PIN, false);      // Default Charger state to off.
-  pinMode(chargeOn_PIN, OUTPUT);          // charger on = Mosfet activation
+  digitalWrite(ChargeOn_PIN, false);      // Default Charger state to off.
+  pinMode(ChargeOn_PIN, OUTPUT);          // charger on = Mosfet activation
   
   
   pinMode(VCharge_PIN, INPUT);            // Analog input for Charge voltage
@@ -64,6 +64,8 @@ void setup() {
 
 */  
   delay(100);         // Let everything settle for 100 ms on boot-up
+
+  attachInterrupt(digitalPinToInterrupt(EncodeA_PIN), isr_EncoderKnob, LOW);     // Attach interrupt for encoder
   
   // Ready to go!
   debugPrint("Setup finished successfully.",1);
