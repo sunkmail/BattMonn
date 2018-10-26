@@ -62,8 +62,8 @@ byte calcBatteryPercent(unsigned long mVsMeasured) {
         _BatteryPercent = ((6.414311974e-3 * mVsMeasured) - 250.1898004);
       }
 
-      debugPrint("float %: ");
-      debugPrint(_BatteryPercent, 1);
+//      debugPrint("float %: ");
+//      debugPrint(_BatteryPercent, 1);
 
       break;
 
@@ -99,8 +99,8 @@ byte calcBatteryPercent(unsigned long mVsMeasured) {
   }
   byte _result = _BatteryPercent;
 
-  debugPrint("byte %: ");
-  debugPrint(_result, 1);
+//  debugPrint("byte %: ");
+//  debugPrint(_result, 1);
 
   //  return byte(_BatteryPercent);
   return (_result);
