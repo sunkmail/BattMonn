@@ -24,7 +24,6 @@ void setup() {
   pinMode(ModeSwitch_PIN, INPUT_PULLUP);   // Mode Switch - Internal Pull-up for push button
   pinMode(RunProgSw_PIN, INPUT_PULLUP);     // Charge ON/Off - Locks Pack voltage setting
   
-  pinMode(TempSense_PIN, INPUT);  
   
   digitalWrite(ChargeOn_PIN, false);      // Default Charger state to off.
   pinMode(ChargeOn_PIN, OUTPUT);          // charger on = Mosfet activation
@@ -45,24 +44,32 @@ void setup() {
 //  OLED.setFont(u8g2_font_logisoso32_tr);    // Set the (initial?) font for 32 Pixel high
 //  OLED.setCursor(0,32);                     // Set cursor to prepare for first write
 
-  // Temperature Sensor (DS18B20)
-/*  
-  if(isTempSensorPresent){                              // If Temp sensor present:
-    tempSensor.begin();                                 // Start the Library
-    tempSensor.getAddress(tempSensorAddr, 0);           // Get addrress for device at index 0  (only sensor, no loop needed)
-                                                        // Addresses used as faster than doing by index.
+ 
 
-    tempSensor.setResolution(tempSensorAddr, TempSensorResolution);     // Set resolution of temp sensor
-    tempSensor.setWaitForConversion(false);             // Put into Async. Mode
-    // tempSensor.setCheckForConversion(true);             // Program will look for flag that conversion complete    //NOT ACTUALLY SURE what this setting does.  Will just track millis
-    tempSensor.requestTemperaturesByAddress(tempSensorAddr);    // Send request for current temp - To get initial value going
-  }
+/*
+OLED.firstPage();     // Pixel Check - Fill All pixels and pause for a delay
+  do {
+  OLED.drawBox(0,0,228,132);
+  } while ( OLED.nextPage() );
+delay(2500);
+*/
+
+/*
+
+// ADC settings - try to improve readings
+  ADCSRA &= ~(bit (ADPS0) | bit (ADPS1) | bit (ADPS2)); // clear prescaler bits
   
-    // Attach the routines to service the interrupts
-  attachInterrupt(digitalPinToInterrupt(EncodeA_PIN), isr_EncoderKnob, LOW);            //Move to sub-routine that changes LED values, updates settings,wakes up backlight, etc)
-                                                                        // Here just for initial testing of encoder - Or adjust to turn on Backlight of display ??
+  // uncomment as required
+  
+//  ADCSRA |= bit (ADPS0);                               //   2  
+//  ADCSRA |= bit (ADPS1);                               //   4  
+//  ADCSRA |= bit (ADPS0) | bit (ADPS1);                 //   8  
+//  ADCSRA |= bit (ADPS2);                               //  16 
+//  ADCSRA |= bit (ADPS0) | bit (ADPS2);                 //  32 
+//  ADCSRA |= bit (ADPS1) | bit (ADPS2);                 //  64 
+  ADCSRA |= bit (ADPS0) | bit (ADPS1) | bit (ADPS2);   // 128
+*/
 
-*/  
   delay(100);         // Let everything settle for 100 ms on boot-up
 
   attachInterrupt(digitalPinToInterrupt(EncodeA_PIN), isr_EncoderKnob, LOW);     // Attach interrupt for encoder
