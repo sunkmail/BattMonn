@@ -1,27 +1,39 @@
+
+
+
+const bool isDebug = true;              // Debug messages?
+//const bool isDebug = false;
+
 /*   Intro
   Battery_Monitor.ino
 
   Controls
     Rotary Encoder with PB Switch - Most controls
-    Momentary Switch - TBD - Change mode?
-    Toggle Switch - Charge On/Off - Locks Voltage Setting
-    LCD or OLED display for showing current mode/status & setting change info.
+    Momentary Switch - run / Standby switch
+    Toggle Switch - Program Settings Vs Run
+    OLED display for showing current mode/status & setting change info.
 
 
 To DO:
 
     Settings menu:
       - Battery Vs Charger Voltage to control Mosfet
+          - made smart ... if battery voltage below charger, use charger, or give error and stop
+          - in place
+          - NOT tested yet
+          
       - Hysterysis for charge
+            - in place
+            - NOT tested yet
     
-    Run Vs Standby indicator
-      - Perhaps don't show current measurement in standby? , replace with standby message?
-    
-    Larger Target % text
-    
-    Current % charged indicator
+    - Add check for overvoltage 
+          - if vRaw is 1023, the pack voltage setting is too low
+          - IIf that is the case - do not allow charge
+          - provide error message  (Check Pack Voltage)??
 
+    - If in monitor mode - don't change OR display target
 
+    - Store settings into EEMPROM for next cycle
 
   The circuit:
 
@@ -44,31 +56,12 @@ To DO:
 */
 
 
-
-/*
-// HardWire - Version: Latest 
-#include <HardWire.h>
-
-// EnableInterrupt - Version: Latest 
-#include <EnableInterrupt.h>
-
-*/
-
-
-
 // Wire - Version: Latest   // I2C Library
 #include <Wire.h>           
 
 // U8g2 - Version: Latest   // I2C Displays
 #include <U8g2lib.h>
 #include <U8x8lib.h>
-
-/*
-// DallasTemperature - Version: Latest 
-#include <DallasTemperature.h>
-#include <OneWire.h>
-*/
-
 
 
 /*
@@ -78,23 +71,14 @@ To DO:
 */
 
 
-
-const bool isDebug = true;              // Debug messages?
-//bool isDebug = false;
-
-
 const bool isDisplay128x32 = true;
-const bool isDisplay16x2 = false;
-
-
-const bool isTempSensor = false;          // Is the Temp sensor installed
-
-//const bool isOLED = false;                // Is the OLED display attached
 
 bool isDischarge = true;                 // Is the discharge port Voltage monitoring present - User changable
 
 const bool isCurrent = true;             // Is a current sensor present?
-const byte maxAmps = 20;                   // Max Amps module can mesure  (5, 20, 30?)
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+const byte maxAmps = 20;                   // Max Amps module can mesure  (5, 20, 30)
 
 
 
@@ -121,39 +105,9 @@ byte virtualPositionSave = 80;        // Place to save position for moving throu
 // **************************************************************
 // ****************** Module Set-ups ****************************
 
-// 0.91" OLED display module  128x32-------------------------------------------WORING IN THIS AREA -----------------------------------------------------------------
+// 0.91" OLED display module  128x32
 /* Constructor */    // U8G2_SSD1306_128X32_UNIVISION_1_HW_I2C(rotation, [reset [, clock, data]])
 U8G2_SSD1306_128X32_UNIVISION_1_HW_I2C OLED(U8G2_R0);  // roation only setting due to HW I2C and not reset pin
-bool updateDisplay_FLAG = true;              // Set initially true to do first display
-
-
-
-
-
-
-// Temperature Sensor (DS18B20)   
-const byte TempSense_PIN = A3;
-/* Constructor */
-  // OneWire oneWire(TempSense_PIN);           // Setup a oneWire instance to communicate with any OneWire devices  
-                                          // (not just Maxim/Dallas temperature ICs)
-  // DallasTemperature tempSensor(&oneWire);   // Pass our oneWire reference to Dallas Temperature Library. 
-
-
-
-//const byte TempSensorCount = 1;           // How many sensors are we expecting      // not needed if only using 1
-  // byte tempSensorAddr[8];                   // Variable to store device's uniquie ID
-  // const byte TempSensorResolution = 9;      // Integer value for sensor precision.  Can be 9, 10, 11 or 12 bits
-/*
-          Mode      Resol   Conversion time
-          9 bits    0.5Â°C     93.75 ms
-          10 bits   0.25Â°C    187.5 ms
-          11 bits   0.125Â°C   375 ms
-          12 bits   0.0625Â°C  750 ms
-*/
-const unsigned int TempSensorConvTime = 100;  // Time in ms to wait between request for temp conv. and read of temperature - Based on info above.
-float currentTempC = 0.0;                 // Current Temperature in C
-
-
 
 
 // **************************************************************
@@ -183,23 +137,39 @@ const byte RunProgSw_PIN = 8;       // Run Vs Program mode Switch  (Settings loc
                                   // Cannot change mode/Pack Voltage when On
 
 
+bool controlVoltage = 1;          // determines controlling voltage -> 0 = Charger, 1 = Battery Output
+
+byte controlPercent = 0;          // Contolling percentage for controlling on/off of charger
+
+byte Hysteresis = 5;             // Percent of charge between going to standby and starting up charging again in Maintenance mode
+const byte minHysteresis = 3;    // Set a min Hysteresis value - Percent of Charge
+const byte maxHysteresis = 15;    // Set a max Hysteresis value - Percent of Charge
 
 // **************************************************************
 // ****************** Global Variables **************************
 
 bool SettingsMode_FLAG = false;
 bool encoderButton_FLAG = false;
-bool monitorMode = true;            // Default to monitoring mode (Not actively charging at power-up)
+bool monitorMode = false;            // Default to monitoring mode (Not actively charging at power-up)
 
 unsigned long VChargeInmV = 0;
-//float VCharge = 0;
 byte ChargePercent = 0;
 
 unsigned long VDischargeInmV = 0;
-//float VDischarge = 0;
 byte DischargePercent = 0;
 
-int IchargemA = 0;                  // Charging Current in mA
+unsigned long IchargemA = 0;                  // Charging Current in mA
+                                     // From Datasheet:
+const byte mAper10mV30 = 151;            // 66 mV/A -> 1000mA/66mV = 15.15 mA/mV = 151 mA/10mV
+const byte mAper10mV20 = 100;          // 100mV/A = 100mV/1000mA -> inverted = 1000mA/100mV = 10 mA/mV = 100mA/10mV
+const byte mAper10mV5 = 54;            // 185mV/A -> 1000mA/185mV = 5.4 mA/mV = 54 mA/10mV
+
+const int iFudge = 1;                 // Fudge Factor for current measurement
+
+
+bool runStdby = true;    // Run Mode = 0, Standby mode = 1
+
+bool runOnce = false;    // Run once Vs Maintenance Modes
 
 
 
@@ -222,44 +192,3 @@ template<typename T> void debugPrint(T printMe, bool newLine = false) {
   }
 }
 
-
-
-
-
-
-  
-//   Below here is Sample loop Code - for Example only!!
-/*
-  // If the current rotary switch position has changed then update everything
-  if (virtualPosition != lastCount) {
-
-    // Write out to serial monitor the value and direction
-    debugPrint(virtualPosition > lastCount ? "Up  :" : "Down:");
-    debugPrint(virtualPosition,1);
-
-    // Keep track of this new value
-    lastCount = virtualPosition ;
-  }
-*/
-void doNothing();       //spacer for code readability - compiler should ignore
-
-
-
-
-
-
-// ------------------------------------------------------------------
-// checkTemp     checkTemp     checkTemp     checkTemp
-// ------------------------------------------------------------------
-void checkTemp(){
-  /*
-  static unsigned long lastTempCheck = 0;                       // keep track of when last converstion started
-  
-  if(currentMillis - lastTempCheck > TempSensorConvTime){         // if the last read was more than conversion time: 
-    currentTempC = tempSensor.getTempC(tempSensorAddr);           // Read Current Temperature in Degrees C 
-    tempSensor.requestTemperaturesByAddress(tempSensorAddr);    // Send request for new temp conversion
-    lastTempCheck = currentMillis;                                // reset timer reference for conversion
-    updateDisplay_FLAG = true;                                       // Set flag to trigger display update
-  }
-  */
-}
